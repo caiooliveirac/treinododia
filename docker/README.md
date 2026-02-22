@@ -25,6 +25,18 @@ cd docker
 docker compose up --build -d
 ```
 
+### Primeira execução em outra máquina (fluxo recomendado)
+
+Para garantir que a base e os dados demo fiquem consistentes já no primeiro `pull`, rode:
+
+```bash
+cd docker
+docker compose down -v
+docker compose up --build -d
+```
+
+Isso força volume novo do Postgres e evita resíduos de execução anterior.
+
 Serviços:
 
 - PostgreSQL: **não exposto externamente**
@@ -37,6 +49,14 @@ Serviços:
 docker compose ps
 docker compose logs backend --tail 100
 docker compose logs frontend --tail 100
+```
+
+Validação rápida da API e dashboard:
+
+```bash
+curl -sS -X POST http://127.0.0.1:3333/api/auth/session \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"admin@treinododia.com","password":"Admin123!"}'
 ```
 
 ## 4) Nginx (servidor já existente)
@@ -82,4 +102,39 @@ cd docker
 docker compose down
 docker compose up --build -d
 docker compose logs -f backend
+```
+
+## 7) Troubleshooting (erros reais já vistos)
+
+### Erro `P3005` no `prisma migrate deploy`
+
+Sintoma nos logs do backend:
+
+```text
+Error: P3005 The database schema is not empty
+```
+
+Contexto: esperado quando o Postgres já foi inicializado via `database/schema.sql` no `docker-entrypoint-initdb.d`.
+O container segue para seed/start e a aplicação funciona normalmente.
+
+### `npm run db:seed` manual falha com `localhost:5432`
+
+Ao executar seed via `docker compose exec backend npm run db:seed`, pode falhar porque o `DATABASE_URL` do `.env` usa `localhost` (válido fora do container).
+
+Dentro do container, use o host `db`:
+
+```bash
+cd docker
+docker compose exec -T backend sh -lc 'export DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?schema=public && npm run db:seed'
+```
+
+### `502` logo após rebuild/restart
+
+Pode ocorrer janela curta enquanto backend/frontend reiniciam.
+Espere 3-5 segundos e tente novamente.
+
+```bash
+curl -sS -X POST http://127.0.0.1:3333/api/auth/session \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"admin@treinododia.com","password":"Admin123!"}'
 ```

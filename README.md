@@ -34,6 +34,19 @@ docker compose up --build -d
 
 Consulte também `docker/README.md` para deploy em Ubuntu/AWS com Nginx.
 
+### Execução rápida em máquina nova
+
+Para subir liso após `git pull`:
+
+```bash
+cp .env.example .env
+cd docker
+docker compose down -v
+docker compose up --build -d
+```
+
+Detalhes de troubleshooting (P3005, seed manual e 502 transitório): `docker/README.md`.
+
 ## Prisma (backend)
 
 ```bash
