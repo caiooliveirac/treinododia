@@ -1,4 +1,4 @@
-# My Web App (Next.js + Tailwind)
+# Frontend - Treino do Dia (Next.js + Tailwind)
 
 Aplicação de registro de treinos migrada para `Next.js` + `React` com visual moderno inspirado em SaaS marketing template (estilo Radiant).
 
@@ -11,7 +11,7 @@ Aplicação de registro de treinos migrada para `Next.js` + `React` com visual m
 ## Estrutura Principal
 
 ```
-my-web-app
+frontend
 ├── app
 │   ├── globals.css
 │   ├── layout.jsx

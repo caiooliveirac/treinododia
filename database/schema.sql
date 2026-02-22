@@ -1,0 +1,7 @@
+-- Schema inicial (placeholder)
+-- CREATE TABLE treinos (
+--   id SERIAL PRIMARY KEY,
+--   data_treino DATE NOT NULL,
+--   descricao TEXT NOT NULL,
+--   created_at TIMESTAMP NOT NULL DEFAULT NOW()
+-- );
