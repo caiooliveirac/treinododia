@@ -24,6 +24,10 @@ frontend
 
 ## Como rodar
 
+Antes, suba o backend (`http://localhost:3333`) e o PostgreSQL.
+
+Este frontend agora representa o painel administrativo e exige autenticação via sessão (`/api/auth/session`).
+
 1. Instale as dependências:
 
 ```bash
@@ -36,6 +40,12 @@ npm install
 npm run dev
 ```
 
+Opcional (API em outra URL):
+
+```bash
+set NEXT_PUBLIC_API_URL=http://localhost:3333
+```
+
 3. Build de produção:
 
 ```bash
@@ -45,8 +55,9 @@ npm run start
 
 Abra `http://localhost:3000` no navegador.
 
-## Próximos passos sugeridos
+## Funcionalidades atuais
 
-- Salvar treinos em `localStorage`.
-- Exibir histórico dos treinos.
-- Adicionar filtros por data.
+- Login administrativo com sessão.
+- Dashboard de métricas globais (usuários, planos, sessões, logs).
+- Listagem administrativa paginada de usuários.
+- Listagem administrativa paginada de planos.
