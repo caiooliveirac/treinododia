@@ -151,4 +151,19 @@ workoutSessionsRouter.post("/workout-sessions", async (req, res) => {
   return res.status(201).json(serializePrisma(session));
 });
 
+workoutSessionsRouter.delete("/workout-sessions/:id", async (req, res) => {
+  const { id } = z.object({ id: z.string().uuid() }).parse(req.params);
+
+  const existing = await prisma.workoutSession.findUniqueOrThrow({ where: { id } });
+  const scopedUserId = resolveScopedUserId(req, existing.userId);
+
+  if (!scopedUserId) {
+    return res.status(403).json({ message: "Voc\u00ea n\u00e3o pode excluir sess\u00e3o de outro usu\u00e1rio." });
+  }
+
+  await prisma.workoutSession.delete({ where: { id } });
+
+  return res.status(204).end();
+});
+
 module.exports = { workoutSessionsRouter };

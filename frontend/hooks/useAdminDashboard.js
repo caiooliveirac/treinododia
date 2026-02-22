@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import {
   ADMIN_SESSION_STORAGE_KEY,
@@ -16,6 +16,8 @@ const EMPTY_TABLE = {
   items: [],
   pagination: EMPTY_PAGINATION,
 };
+
+const AUTO_HIDE_KEYWORDS = ['atualizado', 'iniciada', 'recuperada', 'encerrada'];
 
 export function useAdminDashboard() {
   const [token, setToken] = useState('');
@@ -41,6 +43,16 @@ export function useAdminDashboard() {
   const [authenticating, setAuthenticating] = useState(false);
   const [statusMessage, setStatusMessage] = useState('Sessão administrativa obrigatória.');
 
+  const statusTimerRef = useRef(null);
+
+  const setStatusWithAutoHide = useCallback((msg) => {
+    if (statusTimerRef.current) clearTimeout(statusTimerRef.current);
+    setStatusMessage(msg);
+    if (AUTO_HIDE_KEYWORDS.some((kw) => msg.toLowerCase().includes(kw))) {
+      statusTimerRef.current = setTimeout(() => setStatusMessage(''), 4000);
+    }
+  }, []);
+
   const resetDashboardData = () => {
     setSummary(null);
     setRecentUsers([]);
@@ -54,7 +66,7 @@ export function useAdminDashboard() {
     setAdminEmail('');
     resetDashboardData();
     window.sessionStorage.removeItem(ADMIN_SESSION_STORAGE_KEY);
-    setStatusMessage('Sessão encerrada.');
+    setStatusWithAutoHide('Sessão encerrada.');
   };
 
   const loadAdminDashboard = async (sessionToken, options = {}) => {
@@ -85,13 +97,13 @@ export function useAdminDashboard() {
       setRecentPlans(dashboard.recentPlans || []);
       setUsersData(usersResult);
       setPlansData(plansResult);
-      setStatusMessage('Painel administrativo atualizado.');
+      setStatusWithAutoHide('Painel administrativo atualizado.');
     } catch (error) {
       if (error.message.toLowerCase().includes('sessão')) {
         handleLogout();
       }
 
-      setStatusMessage(error.message || 'Falha ao carregar dados administrativos.');
+      setStatusWithAutoHide(error.message || 'Falha ao carregar dados administrativos.');
     } finally {
       setLoadingDashboard(false);
     }
@@ -102,7 +114,7 @@ export function useAdminDashboard() {
 
     if (savedToken) {
       setToken(savedToken);
-      setStatusMessage('Sessão recuperada. Carregando painel...');
+      setStatusWithAutoHide('Sessão recuperada. Carregando painel...');
     }
 
     setLoadingBoot(false);
@@ -118,7 +130,7 @@ export function useAdminDashboard() {
     event.preventDefault();
 
     setAuthenticating(true);
-    setStatusMessage('Validando credenciais administrativas...');
+    setStatusWithAutoHide('Validando credenciais administrativas...');
 
     try {
       const response = await createAdminSession({
@@ -130,9 +142,9 @@ export function useAdminDashboard() {
       setAdminEmail(response.admin?.email || loginEmail);
       window.sessionStorage.setItem(ADMIN_SESSION_STORAGE_KEY, response.token);
       setLoginPassword('');
-      setStatusMessage('Sessão administrativa iniciada.');
+      setStatusWithAutoHide('Sessão administrativa iniciada.');
     } catch (error) {
-      setStatusMessage(error.message || 'Não foi possível autenticar.');
+      setStatusWithAutoHide(error.message || 'Não foi possível autenticar.');
     } finally {
       setAuthenticating(false);
     }
@@ -144,10 +156,17 @@ export function useAdminDashboard() {
 
     if (!token) return;
 
-    await loadAdminDashboard(token, {
-      usersPage: nextPage,
-      usersQuery: nextQuery,
-    });
+    try {
+      const usersResult = await getAdminUsers(token, {
+        page: nextPage,
+        pageSize: 8,
+        q: nextQuery || undefined,
+      });
+      setUsersData(usersResult);
+    } catch (error) {
+      if (error.message.toLowerCase().includes('sessão')) handleLogout();
+      setStatusWithAutoHide(error.message || 'Falha ao carregar usuários.');
+    }
   };
 
   const reloadPlansTable = async (nextPage, nextActiveOnly) => {
@@ -156,10 +175,17 @@ export function useAdminDashboard() {
 
     if (!token) return;
 
-    await loadAdminDashboard(token, {
-      plansPage: nextPage,
-      plansActiveOnly: nextActiveOnly,
-    });
+    try {
+      const plansResult = await getAdminPlans(token, {
+        page: nextPage,
+        pageSize: 8,
+        activeOnly: nextActiveOnly,
+      });
+      setPlansData(plansResult);
+    } catch (error) {
+      if (error.message.toLowerCase().includes('sessão')) handleLogout();
+      setStatusWithAutoHide(error.message || 'Falha ao carregar planos.');
+    }
   };
 
   return {

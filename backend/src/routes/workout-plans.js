@@ -153,4 +153,88 @@ workoutPlansRouter.post("/workout-plans", async (req, res) => {
   return res.status(201).json(serializePrisma(plan));
 });
 
+workoutPlansRouter.put("/workout-plans/:id", async (req, res) => {
+  const paramsSchema = z.object({ id: z.string().uuid() });
+  const bodySchema = z.object({
+    title: z.string().trim().min(1).optional(),
+    description: z.string().trim().optional(),
+    isActive: z.boolean().optional(),
+    exercises: z.array(planExerciseSchema).optional(),
+  });
+
+  const { id } = paramsSchema.parse(req.params);
+  const payload = bodySchema.parse(req.body);
+
+  const existing = await prisma.workoutPlan.findUniqueOrThrow({ where: { id } });
+  const scopedUserId = resolveScopedUserId(req, existing.userId);
+
+  if (!scopedUserId) {
+    return res.status(403).json({ message: "Voc\u00ea n\u00e3o pode editar plano de outro usu\u00e1rio." });
+  }
+
+  if (payload.exercises?.length) {
+    const sortOrders = payload.exercises.map((e) => e.sortOrder);
+    if (new Set(sortOrders).size !== sortOrders.length) {
+      return res.status(400).json({ message: "Cada exerc\u00edcio do plano deve ter sortOrder \u00fanico." });
+    }
+  }
+
+  const plan = await prisma.$transaction(async (tx) => {
+    await tx.workoutPlan.update({
+      where: { id },
+      data: {
+        ...(payload.title !== undefined ? { title: payload.title } : {}),
+        ...(payload.description !== undefined ? { description: payload.description } : {}),
+        ...(payload.isActive !== undefined ? { isActive: payload.isActive } : {}),
+      },
+    });
+
+    if (payload.exercises) {
+      await tx.workoutPlanExercise.deleteMany({ where: { workoutPlanId: id } });
+      if (payload.exercises.length) {
+        await tx.workoutPlanExercise.createMany({
+          data: payload.exercises.map((item) => ({
+            workoutPlanId: id,
+            exerciseId: item.exerciseId,
+            sortOrder: item.sortOrder,
+            targetSets: item.targetSets,
+            targetRepsMin: item.targetRepsMin,
+            targetRepsMax: item.targetRepsMax,
+            targetWeightKg: item.targetWeightKg,
+            restSeconds: item.restSeconds,
+            notes: item.notes,
+          })),
+        });
+      }
+    }
+
+    return tx.workoutPlan.findUnique({
+      where: { id },
+      include: {
+        planExercises: {
+          include: { exercise: { include: { category: true } } },
+          orderBy: { sortOrder: "asc" },
+        },
+      },
+    });
+  });
+
+  return res.json(serializePrisma(plan));
+});
+
+workoutPlansRouter.delete("/workout-plans/:id", async (req, res) => {
+  const { id } = z.object({ id: z.string().uuid() }).parse(req.params);
+
+  const existing = await prisma.workoutPlan.findUniqueOrThrow({ where: { id } });
+  const scopedUserId = resolveScopedUserId(req, existing.userId);
+
+  if (!scopedUserId) {
+    return res.status(403).json({ message: "Voc\u00ea n\u00e3o pode excluir plano de outro usu\u00e1rio." });
+  }
+
+  await prisma.workoutPlan.delete({ where: { id } });
+
+  return res.status(204).end();
+});
+
 module.exports = { workoutPlansRouter };

@@ -4,9 +4,10 @@ Aplicação de registro de treinos migrada para `Next.js` + `React` com visual m
 
 ## Stack
 
-- `Next.js` (App Router)
-- `React`
-- `Tailwind CSS`
+- `Next.js 15` (App Router, basePath = `/treinos`)
+- `React 18`
+- `Tailwind CSS 3` (dark mode via classe)
+- `Recharts` (gráficos de progresso)
 
 ## Estrutura Principal
 
@@ -14,12 +15,27 @@ Aplicação de registro de treinos migrada para `Next.js` + `React` com visual m
 frontend
 ├── app
 │   ├── globals.css
-│   ├── layout.jsx
-│   └── page.jsx
+│   ├── layout.jsx          # Layout raiz, script anti-FOLT
+│   ├── page.jsx            # Dashboard admin
+│   ├── lib/
+│   │   └── api.ts          # Client API (fetch wrappers)
+│   └── usuario/
+│       └── page.jsx        # Dashboard usuário
+├── components/
+│   ├── admin-dashboard/    # AdminLoginGate, AdminStatCard, AdminUsersTable, AdminPlansTable
+│   ├── shared/             # DashboardNav, Toast, Spinner
+│   └── user-dashboard/     # UserGreeting, WeeklySummaryCard, RecentWorkoutsList,
+│                           # ProgressChart, RegisterWorkoutModal, RestTimer,
+│                           # SessionComparison, InactivityAlert, FloatingRegisterButton
+├── hooks/
+│   ├── useAdminDashboard.js
+│   ├── useUserDashboard.js
+│   └── useDarkMode.js
+├── lib/
+│   └── formatters.js
 ├── package.json
-├── postcss.config.js
 ├── tailwind.config.js
-└── README.md
+└── next.config.js
 ```
 
 ## Como rodar
@@ -55,9 +71,31 @@ npm run start
 
 Abra `http://localhost:3000` no navegador.
 
-## Funcionalidades atuais
+## Funcionalidades
 
-- Login administrativo com sessão.
-- Dashboard de métricas globais (usuários, planos, sessões, logs).
-- Listagem administrativa paginada de usuários.
-- Listagem administrativa paginada de planos.
+### Admin (`/`)
+- Login administrativo com sessão
+- Dashboard de métricas globais (usuários, planos, sessões, logs)
+- Tabela paginada de usuários (busca por email, Enter para buscar)
+- Tabela paginada de planos (filtro ativo/inativo)
+- Status message com auto-hide (4s)
+- Confirmação de logout
+
+### Usuário (`/usuario`)
+- Login de usuário com sessão
+- Resumo semanal (treinos, tempo, streak)
+- Gráfico de progresso dos últimos 7 dias (Recharts)
+- Últimos 5 treinos
+- Comparação entre sessões (navegação por pares)
+- Registro de treino rápido (log) e sessão completa (modal)
+- Timer de descanso com presets, beep sonoro e vibração
+- Alerta de inatividade (dias sem treinar)
+- Toast de confirmação (sucesso/erro)
+- Confirmação de logout
+
+### Geral
+- Dark mode (toggle no navbar, persiste em localStorage)
+- Anti-FOLT (script bloqueante no `<head>` lê preferência antes do paint)
+- Spinner de carregamento animado
+- Responsivo mobile-first
+- Dockerfile multi-stage (builder + runner)

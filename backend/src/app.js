@@ -6,6 +6,7 @@ const morgan = require("morgan");
 const { env } = require("./config/env");
 const { errorHandler } = require("./middlewares/error-handler");
 const { notFoundHandler } = require("./middlewares/not-found");
+const { generalRateLimiter } = require("./middlewares/rate-limit");
 const { router } = require("./routes");
 
 const app = express();
@@ -23,6 +24,7 @@ app.use(
 );
 app.use(express.json({ limit: "1mb" }));
 app.use(morgan(env.nodeEnv === "production" ? "combined" : "dev"));
+app.use(generalRateLimiter);
 
 app.use(router);
 app.use(notFoundHandler);

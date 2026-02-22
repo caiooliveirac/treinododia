@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 
 import {
   createUserSession,
+  createWorkoutLog,
+  createWorkoutSession,
   getAuthenticatedUserWorkouts,
   USER_SESSION_STORAGE_KEY,
 } from '../app/lib/api';
@@ -21,7 +23,16 @@ function calculateStreak(dateKeys) {
   if (!dateKeys.length) return 0;
 
   const dateSet = new Set(dateKeys);
-  let cursor = startOfTodayDate();
+  const today = startOfTodayDate();
+  const todayKey = today.toISOString().slice(0, 10);
+
+  // Start from today if trained today, otherwise from yesterday
+  let cursor = new Date(today);
+  if (!dateSet.has(todayKey)) {
+    cursor.setDate(cursor.getDate() - 1);
+    if (!dateSet.has(cursor.toISOString().slice(0, 10))) return 0;
+  }
+
   let streak = 0;
 
   while (true) {
@@ -106,7 +117,12 @@ function getNameFromSessionEmail(email) {
   if (!email) return 'Usuário';
 
   const base = email.split('@')[0] || 'Usuário';
-  return base.charAt(0).toUpperCase() + base.slice(1);
+  // Split on dots, dashes, underscores and capitalize each part
+  return base
+    .split(/[.\-_]/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
 }
 
 export function useUserDashboard() {
@@ -120,16 +136,23 @@ export function useUserDashboard() {
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
   const [userName, setUserName] = useState('Usuário');
+  const [userId, setUserId] = useState('');
   const [summary, setSummary] = useState({
     totalWorkouts: 0,
     totalMinutes: 0,
     streakDays: 0,
   });
   const [recentWorkouts, setRecentWorkouts] = useState([]);
+  const [workoutSessions, setWorkoutSessions] = useState([]);
+  const [lastWorkoutDate, setLastWorkoutDate] = useState(null);
+  const [submittingWorkout, setSubmittingWorkout] = useState(false);
 
   const clearDashboardState = () => {
     setUserName('Usuário');
+    setUserId('');
     setRecentWorkouts([]);
+    setWorkoutSessions([]);
+    setLastWorkoutDate(null);
     setSummary({
       totalWorkouts: 0,
       totalMinutes: 0,
@@ -159,8 +182,23 @@ export function useUserDashboard() {
       const { session, workoutLogs, workoutSessions } = await getAuthenticatedUserWorkouts(sessionToken);
 
       setUserName(getNameFromSessionEmail(session?.email));
+      setUserId(session?.userId || '');
       setRecentWorkouts(mapRecentWorkouts(workoutLogs, workoutSessions));
       setSummary(mapWeeklySummary(workoutLogs, workoutSessions));
+      setWorkoutSessions(workoutSessions);
+
+      const allDates = [
+        ...workoutLogs.map((l) => l.workoutDate),
+        ...workoutSessions.map((s) => s.startedAt || s.createdAt),
+      ].filter(Boolean);
+
+      if (allDates.length > 0) {
+        const sorted = allDates.sort((a, b) => new Date(b) - new Date(a));
+        setLastWorkoutDate(sorted[0]);
+      } else {
+        setLastWorkoutDate(null);
+      }
+
       setStatusMessage('Dashboard carregado com sucesso.');
     } catch (error) {
       clearDashboardState();
@@ -227,10 +265,43 @@ export function useUserDashboard() {
     loading,
     errorMessage,
     userName,
+    userId,
     summary,
     recentWorkouts,
+    workoutSessions,
+    lastWorkoutDate,
+    submittingWorkout,
     handleLogin,
     handleLogout,
     reload: loadDashboard,
+    submitWorkoutLog: async (payload) => {
+      if (!token || !userId) return;
+      setSubmittingWorkout(true);
+      try {
+        await createWorkoutLog(token, { userId, ...payload });
+        await loadDashboard(token);
+      } finally {
+        setSubmittingWorkout(false);
+      }
+    },
+    submitWorkoutSession: async (payload) => {
+      if (!token || !userId) return;
+      setSubmittingWorkout(true);
+      try {
+        const finishedAt = new Date();
+        const durationMs = (payload.durationMinutes || 60) * 60 * 1000;
+        const startedAt = new Date(finishedAt.getTime() - durationMs);
+        await createWorkoutSession(token, {
+          userId,
+          startedAt: startedAt.toISOString(),
+          finishedAt: finishedAt.toISOString(),
+          feelingScore: payload.feelingScore,
+          notes: payload.notes,
+        });
+        await loadDashboard(token);
+      } finally {
+        setSubmittingWorkout(false);
+      }
+    },
   };
 }

@@ -86,4 +86,46 @@ workoutLogsRouter.post("/workout-logs", async (req, res) => {
   return res.status(201).json(serializePrisma(workoutLog));
 });
 
+workoutLogsRouter.put("/workout-logs/:id", async (req, res) => {
+  const { id } = z.object({ id: z.string().uuid() }).parse(req.params);
+  const bodySchema = z.object({
+    workoutDate: isoDateSchema.optional(),
+    description: z.string().trim().min(1).optional(),
+  });
+
+  const payload = bodySchema.parse(req.body);
+  const existing = await prisma.workoutLog.findUniqueOrThrow({ where: { id } });
+  const scopedUserId = resolveScopedUserId(req, existing.userId);
+
+  if (!scopedUserId) {
+    return res.status(403).json({ message: "Voc\u00ea n\u00e3o pode editar treino de outro usu\u00e1rio." });
+  }
+
+  const workoutLog = await prisma.workoutLog.update({
+    where: { id },
+    data: {
+      ...(payload.workoutDate ? { workoutDate: toDateFromISODate(payload.workoutDate) } : {}),
+      ...(payload.description ? { description: payload.description } : {}),
+    },
+    include: { user: true },
+  });
+
+  return res.json(serializePrisma(workoutLog));
+});
+
+workoutLogsRouter.delete("/workout-logs/:id", async (req, res) => {
+  const { id } = z.object({ id: z.string().uuid() }).parse(req.params);
+
+  const existing = await prisma.workoutLog.findUniqueOrThrow({ where: { id } });
+  const scopedUserId = resolveScopedUserId(req, existing.userId);
+
+  if (!scopedUserId) {
+    return res.status(403).json({ message: "Voc\u00ea n\u00e3o pode excluir treino de outro usu\u00e1rio." });
+  }
+
+  await prisma.workoutLog.delete({ where: { id } });
+
+  return res.status(204).end();
+});
+
 module.exports = { workoutLogsRouter };

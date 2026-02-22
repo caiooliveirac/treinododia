@@ -163,3 +163,83 @@ export async function getAuthenticatedUserWorkouts(token: string) {
     workoutSessions: Array.isArray(workoutSessions) ? workoutSessions : [],
   };
 }
+
+export function createWorkoutLog(
+  token: string,
+  payload: { userId: string; workoutDate: string; description: string }
+) {
+  return request('/api/workout-logs', {
+    method: 'POST',
+    headers: { ...authHeader(token) },
+    body: JSON.stringify(payload),
+  });
+}
+
+export function createWorkoutSession(
+  token: string,
+  payload: {
+    userId: string;
+    workoutPlanId?: string;
+    startedAt?: string;
+    finishedAt?: string;
+    feelingScore?: number;
+    notes?: string;
+    sets?: Array<{
+      exerciseId: string;
+      setNumber: number;
+      reps?: number;
+      weightKg?: number;
+      rpe?: number;
+      completed?: boolean;
+    }>;
+  }
+) {
+  return request('/api/workout-sessions', {
+    method: 'POST',
+    headers: { ...authHeader(token) },
+    body: JSON.stringify(payload),
+  });
+}
+
+export function getExercises(token: string, params: { categoryId?: number; q?: string } = {}) {
+  const searchParams = new URLSearchParams();
+  if (params.categoryId) searchParams.set('categoryId', String(params.categoryId));
+  if (params.q) searchParams.set('q', params.q);
+  const query = searchParams.toString();
+
+  return request(`/api/exercises${query ? `?${query}` : ''}`, {
+    headers: { ...authHeader(token) },
+  });
+}
+
+export function getExerciseCategories(token: string) {
+  return request('/api/exercise-categories', {
+    headers: { ...authHeader(token) },
+  });
+}
+
+export function getUserProfile(token: string) {
+  return request('/api/profile', {
+    headers: { ...authHeader(token) },
+  });
+}
+
+export function changePassword(
+  token: string,
+  payload: { currentPassword: string; newPassword: string }
+) {
+  return request('/api/profile/password', {
+    method: 'PATCH',
+    headers: { ...authHeader(token) },
+    body: JSON.stringify(payload),
+  });
+}
+
+export function getUserWorkoutPlans(token: string, userId: string, activeOnly = false) {
+  const searchParams = new URLSearchParams({ userId });
+  if (activeOnly) searchParams.set('activeOnly', 'true');
+
+  return request(`/api/workout-plans?${searchParams.toString()}`, {
+    headers: { ...authHeader(token) },
+  });
+}

@@ -5,10 +5,12 @@ API Node.js (`Express` + `Prisma`) do projeto `Treino do Dia`.
 ## Stack
 
 - Node.js
-- Express
-- Prisma
-- PostgreSQL
+- Express 5
+- Prisma 6
+- PostgreSQL 16
 - Zod (validação)
+- bcryptjs (hash de senhas)
+- express-rate-limit (proteção contra brute force)
 
 ## Configuração e execução
 
@@ -88,26 +90,35 @@ Com `Authorization: Bearer <token>`, use os endpoints de administração:
 - `npm run prisma:deploy`
 - `npm run prisma:studio`
 
-## Endpoints iniciais
+## Endpoints
 
-- `GET /health`
-- `POST /api/auth/session`
-- `POST /api/auth/user-session`
-- `GET /api/auth/me`
+### Autenticação
+- `POST /api/auth/session` — login admin (rate limited)
+- `POST /api/auth/user-session` — login usuário (rate limited)
+- `GET /api/auth/me` — sessão atual (requer bearer token)
+
+### Administração (requer token admin)
 - `GET /api/admin/dashboard`
 - `GET /api/admin/users`
 - `GET /api/admin/plans`
-- `GET /api/users`
-- `POST /api/users`
-- `GET /api/workout-logs`
-- `POST /api/workout-logs`
+
+### Perfil (requer token usuário)
+- `GET /api/profile`
+- `PATCH /api/profile/password`
+
+### Recursos
+- `GET /health`
+- `GET /api/users` | `POST /api/users`
+- `GET /api/workout-logs` | `POST /api/workout-logs` | `PUT /api/workout-logs/:id` | `DELETE /api/workout-logs/:id`
 - `GET /api/exercise-categories`
-- `GET /api/exercises`
-- `POST /api/exercises`
-- `GET /api/workout-plans`
-- `POST /api/workout-plans`
-- `GET /api/workout-sessions`
-- `POST /api/workout-sessions`
+- `GET /api/exercises` | `POST /api/exercises`
+- `GET /api/workout-plans` | `POST /api/workout-plans` | `PUT /api/workout-plans/:id` | `DELETE /api/workout-plans/:id`
+- `GET /api/workout-sessions` | `POST /api/workout-sessions` | `DELETE /api/workout-sessions/:id`
+
+### Segurança
+- Rate limiter global: 120 req/min
+- Rate limiter auth: 8 tentativas/min
+- Senhas hasheadas com bcrypt (admin e usuários via seed)
 
 ## Modelagem API x Frontend
 
