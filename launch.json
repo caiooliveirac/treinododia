@@ -1,0 +1,32 @@
+{
+    // Versão do schema do VS Code
+    "version": "0.2.0",
+    "configurations": [
+        {
+            // Inicia o Microsoft Edge carregando a extensão diretamente da pasta do workspace
+            "name": "Launch Edge with extension",
+            "type": "pwa-msedge",
+            "request": "launch",
+            // Ajuste o caminho se seu Edge estiver em outro local (64-bit costuma ser em Program Files)
+            "runtimeExecutable": "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+            "runtimeArgs": [
+                // Carrega apenas a extensão do workspace e habilita porta para depuração remota
+                "--disable-extensions-except=${workspaceFolder}",
+                "--load-extension=${workspaceFolder}",
+                "--remote-debugging-port=9222"
+            ],
+            // perfil separado para não mexer no perfil do usuário
+            "userDataDir": "${workspaceFolder}/.vscode-edge-profile",
+            "url": "about:blank",
+            "webRoot": "${workspaceFolder}"
+        },
+        {
+            // Caso prefira iniciar Edge manualmente com --remote-debugging-port=9222 e depois anexar
+            "name": "Attach to Edge (port 9222)",
+            "type": "pwa-msedge",
+            "request": "attach",
+            "port": 9222,
+            "webRoot": "${workspaceFolder}"
+        }
+    ]
+}

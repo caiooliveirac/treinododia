@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Treino do dia</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-slate-100 text-slate-900 antialiased">
+    <main class="mx-auto max-w-4xl px-4 py-10 sm:px-6">
+        <header class="mb-8">
+            <h1 class="text-4xl font-extrabold tracking-tight text-slate-900">Bem-vindo ao Treino do Dia</h1>
+            <p id="feedback" class="mt-3 text-base font-medium text-slate-600">asdfs de treinos</p>
+        </header>
+
+        <form action="/registro-treino" method="post" class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+            <div class="grid grid-cols-1 gap-6 md:grid-cols-2 md:items-start">
+                <div class="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                    <label for="dataDoTreino" class="block text-sm font-semibold text-slate-700">Data do treino</label>
+                    <input
+                        type="date"
+                        id="dataDoTreino"
+                        name="dataDoTreino"
+                        required
+                        title="Data do treino"
+                        aria-label="Data do treino"
+                        class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-slate-800 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                    >
+                </div>
+
+                <div class="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                    <label for="treinodehoje" class="block text-sm font-semibold text-slate-700">Descrição do treino</label>
+                    <textarea
+                        name="treinodehoje"
+                        id="treinodehoje"
+                        placeholder="Como foi seu treino..."
+                        title="Campo para descrever seu treino"
+                        aria-label="Descrição do treino"
+                        required
+                        class="min-h-40 w-full resize-y rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-slate-800 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                    ></textarea>
+                </div>
+            </div>
+
+            <div class="mt-6 flex items-center gap-3">
+                <button type="reset" id="limpar" class="rounded-lg border border-slate-300 bg-slate-100 px-5 py-2.5 font-semibold text-slate-700 transition hover:bg-slate-200">Limpar</button>
+                <button type="submit" id="enviar" class="rounded-lg bg-blue-600 px-5 py-2.5 font-semibold text-white transition hover:bg-blue-700">Enviar</button>
+            </div>
+        </form>
+    </main>
+
+
+
+    <script>
+    const textarea = document.getElementById('treinodehoje');
+    document.getElementById('limpar').addEventListener('click', () => textarea.value = '');
+    document.getElementById('enviar').addEventListener('click', () => {
+        // mostra feedback em <h3> abaixo dos botões e limpa o textarea
+        let feedback = document.getElementById('feedback');
+        if (!feedback) {
+            feedback = document.createElement('h3');
+            feedback.id = 'feedback';
+            document.getElementById('enviar').insertAdjacentElement('afterend', feedback);
+        }
+        feedback.textContent = 'Obrigado pelo envio!';
+        textarea.value = '';
+    });
+    // Define a data atual por padrão no campo type="date"
+    (function(){
+        const dateInput = document.getElementById('dataDoTreino');
+        if (!dateInput) return;
+        const today = new Date();
+        const y = today.getFullYear();
+        const m = String(today.getMonth()+1).padStart(2,'0');
+        const d = String(today.getDate()).padStart(2,'0');
+        dateInput.value = `${y}-${m}-${d}`;
+    })();
+    </script>
+</body>
+</html>
