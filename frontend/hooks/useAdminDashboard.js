@@ -21,7 +21,7 @@ export function useAdminDashboard() {
   const [token, setToken] = useState('');
   const [adminEmail, setAdminEmail] = useState('');
 
-  const [loginEmail, setLoginEmail] = useState('admin@treinododia.local');
+  const [loginEmail, setLoginEmail] = useState('admin@treinododia.com');
   const [loginPassword, setLoginPassword] = useState('');
 
   const [summary, setSummary] = useState(null);
