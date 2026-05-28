@@ -1,37 +1,23 @@
 services:
-  # ── Proxy reverso ────────────────────────────────
-  # Simula o Nginx de produção servindo /treinos
-  nginx:
-    image: nginx:alpine
-    container_name: treinododia-nginx
-    restart: unless-stopped
-    ports:
-      - "${NGINX_PORT:-80}:80"
-    volumes:
-      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
-    depends_on:
-      - frontend
-      - backend
-    networks:
-      - default
-      - perguntas_proxy
+  # ── Proxy reverso (desabilitado em produção) ─────
+  # O servidor já possui Nginx principal (repo-nginx-1).
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: treinododia-nginx
+  #   restart: unless-stopped
+  #   ports:
+  #     - "${NGINX_PORT:-80}:80"
+  #   volumes:
+  #     - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+  #   depends_on:
+  #     - frontend
+  #     - backend
+  #   networks:
+  #     - default
+  #     - perguntas_proxy
 
-  # ── Banco de dados ──────────────────────────────
-  db:
-    image: postgres:16
-    container_name: treinododia-db
-    restart: unless-stopped
-    env_file:
-      - ../.env
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-      - ../database/schema.sql:/docker-entrypoint-initdb.d/001-schema.sql:ro
+  # ── Banco de dados — migrado para PG nativo do host ──
+  # Container db removido — app conecta via host.docker.internal:5432
 
   # ── Backend API ─────────────────────────────────
   backend:
@@ -43,15 +29,15 @@ services:
     env_file:
       - ../.env
     environment:
-      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost}
-    depends_on:
-      db:
-        condition: service_healthy
+      CORS_ORIGIN: ${CORS_ORIGIN:-https://mnrs.com.br}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       - default
+      - perguntas_proxy
     ports:
       - "127.0.0.1:3333:3333"
-    command: sh -c "export DATABASE_URL=postgresql://$${POSTGRES_USER}:$${POSTGRES_PASSWORD}@db:5432/$${POSTGRES_DB}?schema=public; npm run prisma:deploy; npm run start"
+    command: sh -c "export DATABASE_URL=postgresql://$${POSTGRES_USER}:$${POSTGRES_PASSWORD}@$${DB_HOST:-host.docker.internal}:5432/$${POSTGRES_DB}?schema=public; npm run prisma:deploy; npm run start"
 
   # ── Frontend Next.js ────────────────────────────
   frontend:
@@ -74,11 +60,9 @@ services:
       - backend
     networks:
       - default
+      - perguntas_proxy
     ports:
       - "127.0.0.1:3000:3000"
-
-volumes:
-  pgdata:
 
 networks:
   perguntas_proxy:
